@@ -60,15 +60,15 @@ int init_module(void)
 {
 	int i;
 
-	printk(KERN_INFO "charkmod: installing module.\n");
+	printk(KERN_INFO "charkmod-in: installing module.\n");
 
 	// Allocate a major number for the device.
 	major_number = register_chrdev(0, DEVICE_NAME, &fops);
 	if (major_number < 0) {
-		printk(KERN_ALERT "charkmod could not register number.\n");
+		printk(KERN_ALERT "charkmod-in could not register number.\n");
 		return major_number;
 	}
-	printk(KERN_INFO "charkmod: registered correctly with major number %d\n", major_number);
+	printk(KERN_INFO "charkmod-in: registered correctly with major number %d\n", major_number);
 
 	// Initialize all data bytes to '\0'.
 	data_size = 0;
@@ -85,7 +85,7 @@ int init_module(void)
 */
 void cleanup_module(void)
 {
-	printk(KERN_INFO "charkmod: removing module.\n");
+	printk(KERN_INFO "charkmod-in: removing module.\n");
 	unregister_chrdev(major_number, DEVICE_NAME);
 	return;
 }
@@ -96,7 +96,7 @@ void cleanup_module(void)
 */
 static int open(struct inode *inodep, struct file *filep)
 {
-	printk(KERN_INFO "charkmod: device opened.\n");
+	printk(KERN_INFO "charkmod-in: device opened.\n");
 	return 0;
 }
 
@@ -106,7 +106,7 @@ static int open(struct inode *inodep, struct file *filep)
 */
 static int close(struct inode *inodep, struct file *filep)
 {
-	printk(KERN_INFO "charkmod: device closed.\n");
+	printk(KERN_INFO "charkmod-in: device closed.\n");
 	return 0;
 }
 
@@ -118,11 +118,11 @@ static ssize_t write(struct file *filep, const char *buffer, size_t len, loff_t 
 {
 	int i;
 
-	printk(KERN_INFO "charkmod: something wrote to device.\n");
+	printk(KERN_INFO "charkmod-in: something wrote to device.\n");
 
   // Sends message to kernel when there is less space than offered data
 	if (len > MAX_SIZE) {
-		printk(KERN_INFO "charkmod: not enough space! Dropping what's left.\n");
+		printk(KERN_INFO "charkmod-in: not enough space! Dropping what's left.\n");
 	}
 
   // Writes the data to the device

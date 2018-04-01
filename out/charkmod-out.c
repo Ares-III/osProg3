@@ -56,15 +56,15 @@ int init_module(void)
 {
 	int i;
 	
-	printk(KERN_INFO "charkmod: installing module.\n");
+	printk(KERN_INFO "charkmod-out: installing module.\n");
 	
 	// Allocate a major number for the device.
 	major_number = register_chrdev(0, DEVICE_NAME, &fops);
 	if (major_number < 0) {
-		printk(KERN_ALERT "charkmod could not register number.\n");
+		printk(KERN_ALERT "charkmod-out could not register number.\n");
 		return major_number;
 	}
-	printk(KERN_INFO "charkmod: registered correctly with major number %d\n", major_number);
+	printk(KERN_INFO "charkmod-out: registered correctly with major number %d\n", major_number);
 	
 	// Initialize all temp bytes to '\0'.
 	for (i = 0; i < MAX_SIZE; i++) {
@@ -77,7 +77,7 @@ int init_module(void)
 
 void cleanup_module(void)
 {
-	printk(KERN_INFO "charkmod: removing module.\n");
+	printk(KERN_INFO "charkmod-out: removing module.\n");
 	unregister_chrdev(major_number, DEVICE_NAME);
 	return;
 }
@@ -85,14 +85,14 @@ void cleanup_module(void)
 
 static int open(struct inode *inodep, struct file *filep)
 {
-	printk(KERN_INFO "charkmod: device opened.\n");
+	printk(KERN_INFO "charkmod-out: device opened.\n");
 	return 0;
 }
 
 
 static int close(struct inode *inodep, struct file *filep)
 {
-	printk(KERN_INFO "charkmod: device closed.\n");
+	printk(KERN_INFO "charkmod-out: device closed.\n");
 	return 0;
 }
 
@@ -102,10 +102,10 @@ static ssize_t read(struct file *filep, char *buffer, size_t len, loff_t *offset
 	int i, j;
 	int limit = MAX_SIZE, error = 0;
 	
-	printk(KERN_INFO "charkmod: something read from device.\n");
+	printk(KERN_INFO "charkmod-out: something read from device.\n");
 	
 	if (data_size == 0) {
-		printk(KERN_INFO "charkmod: tried to read empty buffer!\n");
+		printk(KERN_INFO "charkmod-out: tried to read empty buffer!\n");
 	}
 	
 	if (len < data_size) {
@@ -118,7 +118,7 @@ static ssize_t read(struct file *filep, char *buffer, size_t len, loff_t *offset
 	
 	error = copy_to_user(buffer, data, limit);
 	if (error != 0) {
-		printk(KERN_INFO "charkmod: error copying to user!\n");
+		printk(KERN_INFO "charkmod-out: error copying to user!\n");
 		return -EFAULT;
 	}
 	
