@@ -12,6 +12,7 @@
 #include <linux/kernel.h>		// Kernel header for convenience.
 #include <linux/fs.h>			// File-system support.
 #include <linux/uaccess.h>		// User access copy function support.
+#include <linux/mutex.h>		// Mutex library for synchronization.
 #define DEVICE_NAME "charkmod-in"	// Device name.
 #define MAX_SIZE    1024		// Max buffer size.
 
@@ -29,6 +30,8 @@ MODULE_AUTHOR("Arati Banerjee, Huong Dang, and Jorge B. Nunez");
 static int  major_number;
 static char data[MAX_SIZE];
 static int  data_size;
+static DEFINE_MUTEX(buffer_mutex);
+EXPORT_SYMBOL(buffer_mutex);
 EXPORT_SYMBOL(data);
 EXPORT_SYMBOL(data_size);
 
@@ -75,6 +78,8 @@ int init_module(void)
 	for (i = 0; i < MAX_SIZE; i++) {
 		data[i] = '\0';
 	}
+	
+	mutex_init(&buffer_mutex);
 
 	return 0;
 }
@@ -87,6 +92,7 @@ void cleanup_module(void)
 {
 	printk(KERN_INFO "charkmod-in: removing module.\n");
 	unregister_chrdev(major_number, DEVICE_NAME);
+	mutex_destroy(&buffer_mutex);
 	return;
 }
 
@@ -96,6 +102,10 @@ void cleanup_module(void)
 */
 static int open(struct inode *inodep, struct file *filep)
 {
+	if (!mutex_trylock(&buffer_mutex)) {
+		printk(KERN_ALERT "charkmod-in: device in use by another process\n");
+		return -EBUSY;
+	}
 	printk(KERN_INFO "charkmod-in: device opened.\n");
 	return 0;
 }
@@ -106,6 +116,7 @@ static int open(struct inode *inodep, struct file *filep)
 */
 static int close(struct inode *inodep, struct file *filep)
 {
+	mutex_unlock(&buffer_mutex);
 	printk(KERN_INFO "charkmod-in: device closed.\n");
 	return 0;
 }
@@ -120,12 +131,12 @@ static ssize_t write(struct file *filep, const char *buffer, size_t len, loff_t 
 
 	printk(KERN_INFO "charkmod-in: something wrote to device.\n");
 
-  // Sends message to kernel when there is less space than offered data
+	// Sends message to kernel when there is less space than offered data
 	if (len > MAX_SIZE) {
 		printk(KERN_INFO "charkmod-in: not enough space! Dropping what's left.\n");
 	}
 
-  // Writes the data to the device
+	// Writes the data to the device
 	for (i = 0, data_size = 0; i < MAX_SIZE; i++) {
 		if (i >= len)
 			data[i] = '\0';
@@ -135,6 +146,6 @@ static ssize_t write(struct file *filep, const char *buffer, size_t len, loff_t 
 		}
 	}
 
-  // Returns the count of the number of bytes attempted to be written
+	// Returns the count of the number of bytes attempted to be written
 	return len;
 }

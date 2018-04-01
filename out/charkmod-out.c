@@ -12,6 +12,7 @@
 #include <linux/kernel.h>		// Kernel header for convenience.
 #include <linux/fs.h>			// File-system support.
 #include <linux/uaccess.h>		// User access copy function support.
+#include <linux/mutex.h>		// Mutex library for synchronization.
 #define DEVICE_NAME "charkmod-out"	// Device name.
 #define MAX_SIZE    1024		// Max buffer size. 
 
@@ -30,6 +31,7 @@ static int  major_number;
 static char temp[MAX_SIZE];
 extern char data[MAX_SIZE];
 extern int  data_size;
+extern struct mutex buffer_mutex;
 
 
 /**
@@ -85,6 +87,10 @@ void cleanup_module(void)
 
 static int open(struct inode *inodep, struct file *filep)
 {
+	if (!mutex_trylock(&buffer_mutex)) {
+		printk(KERN_ALERT "charkmod-out: device busy with another process");
+		return -EBUSY;
+	}
 	printk(KERN_INFO "charkmod-out: device opened.\n");
 	return 0;
 }
@@ -92,6 +98,7 @@ static int open(struct inode *inodep, struct file *filep)
 
 static int close(struct inode *inodep, struct file *filep)
 {
+	mutex_unlock(&buffer_mutex);
 	printk(KERN_INFO "charkmod-out: device closed.\n");
 	return 0;
 }
