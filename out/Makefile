@@ -1,3 +1,5 @@
+KBUILD_EXTRA_SYMBOLS := /home/jbn/osProg3/in/Module.symvers
+
 obj-m += charkmod-out.o
 
 all:
