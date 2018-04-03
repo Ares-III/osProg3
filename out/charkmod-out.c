@@ -80,7 +80,9 @@ int init_module(void)
 void cleanup_module(void)
 {
 	printk(KERN_INFO "charkmod-out: removing module.\n");
+	
 	unregister_chrdev(major_number, DEVICE_NAME);
+	
 	return;
 }
 
@@ -91,7 +93,9 @@ static int open(struct inode *inodep, struct file *filep)
 		printk(KERN_ALERT "charkmod-out: device busy with another process");
 		return -EBUSY;
 	}
+	
 	printk(KERN_INFO "charkmod-out: device opened.\n");
+	
 	return 0;
 }
 
@@ -99,7 +103,9 @@ static int open(struct inode *inodep, struct file *filep)
 static int close(struct inode *inodep, struct file *filep)
 {
 	mutex_unlock(&buffer_mutex);
+	
 	printk(KERN_INFO "charkmod-out: device closed.\n");
+	
 	return 0;
 }
 
