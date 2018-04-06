@@ -14,7 +14,7 @@
 #include <linux/uaccess.h>		// User access copy function support.
 #include <linux/mutex.h>		// Mutex library for synchronization.
 #define DEVICE_NAME "charkmod-out"	// Device name.
-#define MAX_SIZE    1024		// Max buffer size. 
+#define MAX_SIZE    1024		// Max buffer size.
 
 
 /**
@@ -53,13 +53,15 @@ static struct file_operations fops =
 	.read    = read,
 };
 
-
+/**
+ * Initializes module at installation
+ */
 int init_module(void)
 {
 	int i;
-	
+
 	printk(KERN_INFO "charkmod-out: installing module.\n");
-	
+
 	// Allocate a major number for the device.
 	major_number = register_chrdev(0, DEVICE_NAME, &fops);
 	if (major_number < 0) {
@@ -67,60 +69,71 @@ int init_module(void)
 		return major_number;
 	}
 	printk(KERN_INFO "charkmod-out: registered correctly with major number %d\n", major_number);
-	
+
 	// Initialize all temp bytes to '\0'.
 	for (i = 0; i < MAX_SIZE; i++) {
 		temp[i] = '\0';
 	}
-	
+
 	return 0;
 }
 
-
+/*
+ * Removes module, sends appropriate message to kernel
+*/
 void cleanup_module(void)
 {
 	printk(KERN_INFO "charkmod-out: removing module.\n");
-	
+
 	unregister_chrdev(major_number, DEVICE_NAME);
-	
+
 	return;
 }
 
-
+/*
+ * Opens device module, sends appropriate message to kernel
+*/
 static int open(struct inode *inodep, struct file *filep)
 {
+	// Locks the mutex as the module reads from device
 	if (!mutex_trylock(&buffer_mutex)) {
 		printk(KERN_ALERT "charkmod-out: device busy with another process");
 		return -EBUSY;
 	}
-	
+
 	printk(KERN_INFO "charkmod-out: device opened.\n");
-	
+
 	return 0;
 }
 
 
+/*
+ * Closes device module, sends appropriate message to kernel
+*/
 static int close(struct inode *inodep, struct file *filep)
 {
+	// Unlocks the mutex when module has finished reading
 	mutex_unlock(&buffer_mutex);
-	
+
 	printk(KERN_INFO "charkmod-out: device closed.\n");
-	
+
 	return 0;
 }
 
-
+/*
+ * Reads from device, and deletes read bytes
+*/
 static ssize_t read(struct file *filep, char *buffer, size_t len, loff_t *offset)
 {
 	int i, j;
 	int limit = MAX_SIZE, error = 0;
-	
+
 	printk(KERN_INFO "charkmod-out: something read from device.\n");
-	
+
 	if (data_size == 0) {
 		printk(KERN_INFO "charkmod-out: tried to read empty buffer!\n");
 	}
-	
+
 	if (len < data_size) {
 		limit = len;
 		data_size = data_size - len;
@@ -128,25 +141,26 @@ static ssize_t read(struct file *filep, char *buffer, size_t len, loff_t *offset
 		limit = data_size;
 		data_size = 0;
 	}
-	
+
 	error = copy_to_user(buffer, data, limit);
 	if (error != 0) {
 		printk(KERN_INFO "charkmod-out: error copying to user!\n");
 		return -EFAULT;
 	}
-	
-	
+
+
 	for (i = limit, j = 0; i < MAX_SIZE; i++, j++) {
 		temp[j] = data[i];
 	}
-	
+
 	for ( ; j < MAX_SIZE; j++) {
 		temp[j] = '\0';
 	}
-	
+
 	for (i = 0; i < MAX_SIZE; i++) {
 		data[i] = temp[i];
 	}
-	
+
+	// returns number of bytes read
 	return limit;
 }

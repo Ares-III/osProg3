@@ -78,7 +78,7 @@ int init_module(void)
 	for (i = 0; i < MAX_SIZE; i++) {
 		data[i] = '\0';
 	}
-	
+
 	mutex_init(&buffer_mutex);
 
 	return 0;
@@ -91,11 +91,11 @@ int init_module(void)
 void cleanup_module(void)
 {
 	printk(KERN_INFO "charkmod-in: removing module.\n");
-	
+
 	unregister_chrdev(major_number, DEVICE_NAME);
-	
+
 	mutex_destroy(&buffer_mutex);
-	
+
 	return;
 }
 
@@ -105,13 +105,14 @@ void cleanup_module(void)
 */
 static int open(struct inode *inodep, struct file *filep)
 {
+	// Locks the mutex as the module writes to device
 	if (!mutex_trylock(&buffer_mutex)) {
 		printk(KERN_ALERT "charkmod-in: device in use by another process\n");
 		return -EBUSY;
 	}
-	
+
 	printk(KERN_INFO "charkmod-in: device opened.\n");
-	
+
 	return 0;
 }
 
@@ -121,10 +122,11 @@ static int open(struct inode *inodep, struct file *filep)
 */
 static int close(struct inode *inodep, struct file *filep)
 {
+	// Unlocks the mutex when module has finished writing
 	mutex_unlock(&buffer_mutex);
-	
+
 	printk(KERN_INFO "charkmod-in: device closed.\n");
-	
+
 	return 0;
 }
 
